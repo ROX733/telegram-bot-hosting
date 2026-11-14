@@ -1,34 +1,36 @@
 # Telegram Bot Hosting Platform
 
-Initial control-plane API for a Telegram bot hosting platform.
+Initial FastAPI control-plane API for a Telegram bot hosting platform, using MongoDB Atlas.
 
 ## Current stage
 
-This repository currently contains the first FastAPI control API scaffold. It can:
-- expose a health endpoint at `/health`
-- create project metadata records
-- list project records by owner ID
-- use PostgreSQL on Railway (or SQLite for local development)
+The API currently supports:
+- `GET /` service information
+- `GET /health` Railway health check
+- `GET /ping-db` MongoDB connectivity check
+- `POST /api/v1/projects` create project metadata (requires `X-API-Key`)
+- `GET /api/v1/projects?owner_id=...` list project metadata (requires `X-API-Key`)
 
-**This stage does not execute uploaded bot code yet.** Bot execution will be added only after the deployment/isolation design is configured. Do not upload third-party code or real bot tokens at this stage.
+**Important:** This is still only the control API scaffold. It does not yet accept uploads, store Telegram bot tokens, or execute users' bot code. Do not submit real bot tokens or user files until those features and isolated runtimes have been implemented.
 
-## Deploy on Railway
+## Railway configuration
 
-1. Create a new Railway project and deploy this GitHub repository.
-2. Add a PostgreSQL database service to the same Railway project.
-3. In the API service Variables, set:
-   - `API_SECRET`: a long random secret (keep it private)
-   - `DATABASE_URL`: reference Railway PostgreSQL's `DATABASE_URL` variable
-4. Railway uses `railway.json` to start Uvicorn and health-check `/health`.
+Deploy this repository to Railway. In the API service's Variables, configure:
 
-## API
+- `API_SECRET`: a long random secret generated privately. Never commit or share it.
+- `MONGODB_URI`: your MongoDB Atlas connection string, stored only as a Railway variable.
 
-- `GET /` — service information
-- `GET /health` — health check
-- `POST /api/v1/projects` — create project metadata (requires `X-API-Key`)
-- `GET /api/v1/projects?owner_id=...` — list project metadata (requires `X-API-Key`)
+Example URI shape (replace placeholders in Railway, not in this file):
 
-Example create request:
+```
+mongodb+srv://DB_USERNAME:DB_PASSWORD@YOUR_CLUSTER.mongodb.net/?appName=YOUR_APP
+```
+
+In MongoDB Atlas, create a database user and allow network access from the Railway service. For initial connectivity testing, Atlas network access rules must permit the Railway outbound connection; prefer a restricted allowlist where practical. Never put the real URI in GitHub.
+
+Railway uses `railway.json` to start Uvicorn and health-check `/health`. After setting variables, redeploy if Railway does not automatically redeploy.
+
+## API example
 
 ```http
 POST /api/v1/projects
@@ -42,10 +44,11 @@ X-API-Key: YOUR_API_SECRET
 }
 ```
 
-## Security notes
+## Security and next development stages
 
-- Never commit `.env`, bot tokens, API keys, or credentials.
-- Keep the GitHub repository private.
-- Use Railway Variables for secrets.
-- Never run untrusted uploaded Python code inside this API service.
-- Before accepting public users, add per-user authentication, quotas, abuse controls, and isolated execution services.
+- Keep all credentials in Railway Variables, not source code.
+- The repository may be public, so assume everything committed here is publicly readable.
+- Never log Telegram bot tokens or MongoDB credentials.
+- Before accepting public uploads, implement authenticated TBC requests, upload validation, per-user quotas, premium entitlement checks, encrypted token storage, abuse controls, and isolated per-bot execution.
+- Never execute untrusted uploaded Python code inside this API service or its shared process.
+- The planned free tier is one bot per user; additional bots require an active premium entitlement. This limit must be enforced by the backend, not only by TBC menu buttons.
